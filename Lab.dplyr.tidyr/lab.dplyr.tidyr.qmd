@@ -1,0 +1,160 @@
+---
+title: "lab.dplyr.tidyr"
+author: "Eloïse Vannier"
+format: html
+---
+
+```{r}
+#| echo: false
+#| message: false
+here::i_am("Lab.dplyr.tidyr.Rproj")
+library(here)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+```
+
+## Exercise 1 :
+
+```{r}
+#| echo: false
+#| message: false
+spotify <- readRDS("top-spotify-songs-from-20102019-by-year.Rds")
+```
+
+### Question 1 :
+
+```{r}
+#| echo: false
+#| message: false
+nb_songs <- nrow(spotify %>% distinct(title))
+nb_artists <- nrow(spotify %>% distinct(artist))
+nb_genre <- nrow(spotify %>% distinct(`top genre`))
+```
+
+The data set contains `r nb_songs` songs, `r nb_artists` artists and `r nb_genre` musical genres.
+
+### Question 2 :
+
+```{r}
+#| echo: false
+#| message: false
+songs.per.year <- spotify %>% distinct(title,year) |> 
+  group_by(year) |>
+  mutate(N=n())
+songs.per.year%>% distinct(year,N)|>
+  arrange(year)|>
+  knitr::kable()
+```
+
+### Question 3 :
+
+```{r}
+#| echo: false
+#| message: false
+artists <- spotify %>% distinct(title,artist) |> 
+  group_by(artist) |>
+  mutate(N=n())|>
+  arrange(N)
+  most.popular.artist <- artists$artist[nrow(artists)]
+  nb.songs.most.pop.artist <-artists$N[nrow(artists)]
+```
+
+The most popular artist is `r most.popular.artist`, with `r nb.songs.most.pop.artist` hit songs.
+
+### Question 4 :
+
+```{r}
+#| echo: false
+#| message: false
+spotify|>
+  group_by(`top genre`)|>
+  summarise(min(bpm),max(bpm),mean(bpm),median(bpm), n())|>
+  knitr::kable()
+```
+
+### Question 5 :
+
+```{r}
+#| echo: false
+#| message: false
+nrgy.and.dnce.per.year <- spotify|>
+  group_by(year)|>
+  summarise(m_nrgy = median(nrgy),m_dance = median(dnce))
+knitr::kable(nrgy.and.dnce.per.year)
+```
+
+### Question 6 :
+
+```{r}
+#| echo: false
+#| message: false
+df <- nrgy.and.dnce.per.year %>% pivot_longer(cols=c('m_nrgy', 'm_dance'),
+                          names_to='nrgy and dnce',
+                          values_to='value')
+      
+```
+
+```{r}
+#| echo: false
+#| message: false
+ggplot(df, aes(x=year, y=value, group=`nrgy and dnce`))+ 
+  geom_line(aes(color =`nrgy and dnce`))+
+  scale_color_manual(name='colour', labels=c('median energy','median danceability'),values=c('red', 'blue'))
+```
+
+## Exercise 2 :
+
+```{r}
+#| echo: false
+#| message: false
+dropout <- readRDS("dropout.Rds")
+```
+
+### Question 1 :
+
+```{r}
+#| echo: false
+#| message: false
+dropout_ms <-dropout |>
+  group_by (`Marital status`)
+male_median_age <- dropout_ms|> 
+  filter(Gender=="Male") |> summarize (Male = median(`Age at enrollment`))
+female_median_age <- dropout_ms|> 
+  filter(Gender=="Female")|> summarize (Female = median(`Age at enrollment`))
+```
+
+### Question 2 :
+
+```{r}
+#| echo: false
+#| message: false
+mar_sta <-data.frame(male_median_age|>
+  mutate(Female = female_median_age$Female))
+knitr::kable(mar_sta)
+```
+### Question 3 :
+
+```{r}
+#| echo: false
+#| message: false
+dropout_curricular <- dropout|>
+  group_by(Target)|>
+  summarize ("Curricular units 1st sem (credited)" = mean(`Curricular units 1st sem (credited)`),"Curricular units 1st sem (enrolled)" = mean(`Curricular units 1st sem (enrolled)`),"Curricular units 1st sem (evaluations)"=mean(`Curricular units 1st sem (evaluations)`),"Curricular units 1st sem (approved)"=mean(`Curricular units 1st sem (approved)`),"Curricular units 1st sem (grade)"=mean(`Curricular units 1st sem (grade)`),"Curricular units 1st sem (without evaluations)"=mean(`Curricular units 1st sem (without evaluations)`),"Curricular units 2nd sem (credited)"=mean(`Curricular units 2nd sem (credited)`),"Curricular units 2nd sem (enrolled)"=mean(`Curricular units 2nd sem (enrolled)`),"Curricular units 2nd sem (evaluations)"=mean(`Curricular units 2nd sem (evaluations)`),"Curricular units 2nd sem (approved)"=mean(`Curricular units 2nd sem (approved)`), "Curricular units 2nd sem (grade)"=mean(`Curricular units 2nd sem (grade)`),"Curricular units 2nd sem (without evaluations)"=mean(`Curricular units 2nd sem (without evaluations)`))
+```
+
+### Question 4 :
+
+```{r}
+#| echo: false
+#| message: false
+dp_curricular_long <- dropout_curricular %>% pivot_longer(cols = c("Curricular units 1st sem (credited)","Curricular units 1st sem (enrolled)","Curricular units 1st sem (evaluations)","Curricular units 1st sem (approved)","Curricular units 1st sem (grade)","Curricular units 1st sem (without evaluations)","Curricular units 2nd sem (credited)","Curricular units 2nd sem (enrolled)","Curricular units 2nd sem (evaluations)","Curricular units 2nd sem (approved)", "Curricular units 2nd sem (grade)","Curricular units 2nd sem (without evaluations)"), names_to ="Units")
+```
+
+```{r}
+#| echo: false
+#| message: false
+dp_curricular_final <- dp_curricular_long %>% pivot_wider(names_from = Target, values_from = value)
+knitr::kable(dp_curricular_final)
+```
+
